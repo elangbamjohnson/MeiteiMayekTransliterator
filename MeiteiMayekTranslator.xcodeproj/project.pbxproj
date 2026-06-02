@@ -29,6 +29,25 @@
 		230E53EA2FCDC703001E580E /* MeiteiMayekTranslatorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeiteiMayekTranslatorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		230E54B22FCF3695001E580E /* Exceptions for "MeiteiMayekTranslatorTests" folder in "MeiteiMayekTranslator" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				RomanizerTests.swift,
+				TransliterationPipelineTests.swift,
+			);
+			target = 230E53D22FCDC702001E580E /* MeiteiMayekTranslator */;
+		};
+		230E54B32FCF3695001E580E /* Exceptions for "MeiteiMayekTranslatorTests" folder in "MeiteiMayekTranslatorTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				RomanizerTests.swift,
+				TransliterationPipelineTests.swift,
+			);
+			target = 230E53DF2FCDC703001E580E /* MeiteiMayekTranslatorTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		230E53D52FCDC702001E580E /* MeiteiMayekTranslator */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -37,6 +56,10 @@
 		};
 		230E53E32FCDC703001E580E /* MeiteiMayekTranslatorTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				230E54B22FCF3695001E580E /* Exceptions for "MeiteiMayekTranslatorTests" folder in "MeiteiMayekTranslator" target */,
+				230E54B32FCF3695001E580E /* Exceptions for "MeiteiMayekTranslatorTests" folder in "MeiteiMayekTranslatorTests" target */,
+			);
 			path = MeiteiMayekTranslatorTests;
 			sourceTree = "<group>";
 		};
@@ -395,9 +418,11 @@
 				DEVELOPMENT_TEAM = A2CQ49GHDC;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app needs access to your camera to scan Meitei Mayek script.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -439,9 +464,11 @@
 				DEVELOPMENT_TEAM = A2CQ49GHDC;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app needs access to your camera to scan Meitei Mayek script.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

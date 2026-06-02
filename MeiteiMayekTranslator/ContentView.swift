@@ -8,17 +8,21 @@
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    @StateObject private var viewModel = TranslatorViewModel()
 
-#Preview {
-    ContentView()
+    var body: some View {
+        TabView {
+            ScanView()
+                .tabItem {
+                    Label("Scan", systemImage: "camera.viewfinder")
+                }
+
+            HistoryView()
+                .tabItem {
+                    Label("History", systemImage: "clock")
+                }
+        }
+        .environmentObject(viewModel)
+        .tint(.purple)
+    }
 }
