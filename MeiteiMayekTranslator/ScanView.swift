@@ -18,189 +18,277 @@ struct ScanView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-
-                    // Header script display
+            VStack(spacing: 0) {
+                // Fixed Header (Expert UX: Stays fixed to top with glassmorphism effect)
+                VStack(spacing: 16) {
                     VStack(spacing: 4) {
                         Text("ꯃꯤꯇꯩ ꯃꯌꯦꯛ")
                             .font(.system(size: 32, weight: .medium))
                             .foregroundStyle(.purple)
-                        Text(viewModel.mode == .mayekToEnglish ? "Meitei Mayek → English transliteration" : "English → Meitei Mayek (to Meitei Mayek script)")
+                        Text(viewModel.mode == .mayekToEnglish ? "Meitei Mayek → English transliteration" : "English → Meitei Mayek")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Link("Same spelling rules as Meitei Mayek transliteration tool",
-                             destination: URL(string: "https://abhisanoujam.github.io/meitei_mayek/")!)
-                            .font(.caption2)
                     }
-                    .padding(.top, 8)
                     
                     Picker("Mode", selection: $viewModel.mode) {
                         Text("Mayek → English").tag(TranslatorViewModel.TransliterationMode.mayekToEnglish)
                         Text("English → Mayek").tag(TranslatorViewModel.TransliterationMode.englishToMayek)
                     }
                     .pickerStyle(.segmented)
-                    .padding(.horizontal)
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .zIndex(1) // Ensure header stays on top of scroll content
+                
+                Divider()
 
-                    // Camera capture card
-                    Button {
-                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                            imagePickerSource = .camera
-                            showImagePicker = true
-                        }
-                    } label: {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(Color(.systemGray6))
-                                .frame(height: 180)
-                                .opacity(UIImagePickerController.isSourceTypeAvailable(.camera) ? 1 : 0.5)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        
+                        // Reference Link (Moved to top of scroll area to keep header compact)
+                        Link("Same spelling rules as abhisanoujam/meitei_mayek",
+                             destination: URL(string: "https://abhisanoujam.github.io/meitei_mayek/")!)
+                            .font(.caption2)
+                            .padding(.top, 12)
 
-                            VStack(spacing: 12) {
-                                Image(systemName: "camera.fill")
-                                    .font(.system(size: 44))
-                                    .foregroundStyle(.purple)
-                                Text("Tap to scan script")
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-                                Text(UIImagePickerController.isSourceTypeAvailable(.camera) ? "Point camera at Meitei Mayek text" : "Camera not available on this device")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                        // Camera capture card
+                        Button {
+                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                imagePickerSource = .camera
+                                showImagePicker = true
+                            }
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(Color(.systemGray6))
+                                    .frame(height: 180)
+                                    .opacity(UIImagePickerController.isSourceTypeAvailable(.camera) ? 1 : 0.5)
+
+                                VStack(spacing: 12) {
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 44))
+                                        .foregroundStyle(.purple)
+                                    Text("Tap to scan script")
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                    Text(UIImagePickerController.isSourceTypeAvailable(.camera) ? "Point camera at Meitei Mayek text" : "Camera not available on this device")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
-                    }
-                    .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-                    .padding(.horizontal)
+                        .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+                        .padding(.horizontal)
 
-                    // Secondary options
-                    HStack(spacing: 12) {
-                        // Gallery picker
-                        Button {
-                            showPhotoPicker = true
-                        } label: {
-                            Label("Gallery", systemImage: "photo.on.rectangle")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color(.systemGray6))
-                                .foregroundStyle(.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        // Secondary options
+                        HStack(spacing: 12) {
+                            // Gallery picker
+                            Button {
+                                showPhotoPicker = true
+                            } label: {
+                                Label("Gallery", systemImage: "photo.on.rectangle")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color(.systemGray6))
+                                    .foregroundStyle(.primary)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                            }
                         }
-                    }
-                    .padding(.horizontal)
+                        .padding(.horizontal)
 
-                    // Inline type-to-transliterate section
-                    VStack(spacing: 12) {
-                        Text(viewModel.mode == .mayekToEnglish ? "Type Meitei Mayek text to transliterate" : "Type English text to convert to Meitei Mayek")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal)
-
-                        TextEditor(text: viewModel.mode == .mayekToEnglish ? $viewModel.mayekTypedText : $viewModel.englishTypedText)
-                            .font(.system(size: 20))
-                            .frame(height: 120)
-                            .padding(12)
-                            .background(Color(.systemGray6))
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .padding(.horizontal)
-
-                        Button {
-                            Task { await viewModel.translateTypedText() }
-                        } label: {
-                            Text(viewModel.isLoading ? "Transliterating…" : "Transliterate")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(.purple)
-                                .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                                .padding(.horizontal)
-                        }
-                        .disabled(viewModel.isLoading || (viewModel.mode == .mayekToEnglish ? viewModel.mayekTypedText : viewModel.englishTypedText).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-
-                    // Selected image preview
-                    if let image = viewModel.selectedImage {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Selected image")
+                        // Inline type-to-transliterate section
+                        VStack(spacing: 12) {
+                            Text(viewModel.mode == .mayekToEnglish ? "Type Meitei Mayek text to transliterate" : "Type English text to convert to Meitei Mayek")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal)
 
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxHeight: 200)
+                            TextEditor(text: viewModel.mode == .mayekToEnglish ? $viewModel.mayekTypedText : $viewModel.englishTypedText)
+                                .font(.system(size: 20))
+                                .frame(height: 120)
+                                .padding(12)
+                                .background(Color(.systemGray6))
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                                 .padding(.horizontal)
-                        }
-                    }
 
-                    // Error message
-                    if let error = viewModel.errorMessage {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                            Text(error)
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
+                            Button {
+                                Task { await viewModel.translateTypedText() }
+                            } label: {
+                                Text(viewModel.isLoading ? "Transliterating…" : "Transliterate")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(.purple)
+                                    .foregroundStyle(.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .padding(.horizontal)
+                            }
+                            .disabled(viewModel.isLoading || (viewModel.mode == .mayekToEnglish ? viewModel.mayekTypedText : viewModel.englishTypedText).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
-                        .padding()
-                        .background(Color.orange.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal)
-                    }
 
-                    // Loading state
-                    if viewModel.isLoading {
-                        VStack(spacing: 12) {
-                            ProgressView()
-                                .scaleEffect(1.2)
-                            Text("Reading script and transliterating on-device…")
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
+                        // Selected image preview
+                        if let image = viewModel.selectedImage {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Selected image")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal)
+
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxHeight: 200)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .padding(.horizontal)
+                            }
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                    }
 
-                    // Inline result area
-                    if viewModel.mode == .mayekToEnglish {
-                        if let result = viewModel.currentResult {
-                            VStack(spacing: 20) {
-                                // Original script card
+                        // Error message
+                        if let error = viewModel.errorMessage {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                                Text(error)
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding()
+                            .background(Color.orange.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding(.horizontal)
+                        }
+
+                        // Loading state
+                        if viewModel.isLoading {
+                            VStack(spacing: 12) {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                Text("Reading script and transliterating on-device…")
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                        }
+
+                        // Inline result area
+                        if viewModel.mode == .mayekToEnglish {
+                            if let result = viewModel.currentResult {
+                                VStack(spacing: 20) {
+                                    // Original script card
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Label("Detected Meitei Mayek", systemImage: "text.viewfinder")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+
+                                        Text(result.detectedScript)
+                                            .font(.system(size: 24))
+                                            .lineSpacing(6)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                                        HStack {
+                                            // Confidence bar
+                                            GeometryReader { geo in
+                                                ZStack(alignment: .leading) {
+                                                    Capsule()
+                                                        .fill(Color(.systemGray5))
+                                                        .frame(height: 6)
+                                                    Capsule()
+                                                        .fill(confidenceColor)
+                                                        .frame(width: geo.size.width * result.confidence, height: 6)
+                                                }
+                                            }
+                                            .frame(height: 6)
+
+                                            Text(viewModel.confidencePercent)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                                .frame(width: 40, alignment: .trailing)
+
+                                            Button {
+                                                UIPasteboard.general.string = result.detectedScript
+                                            } label: {
+                                                Image(systemName: "doc.on.doc")
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+                                    }
+                                    .padding()
+                                    .background(Color(.systemGray6))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .padding(.horizontal)
+
+                                    // Arrow
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(.purple)
+
+                                    // Transliteration card
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Label("Transliteration (Latin)", systemImage: "character.book.closed")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+
+                                        Text(result.romanizedText)
+                                            .font(.title3)
+                                            .lineSpacing(6)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                                        HStack { Spacer() }
+                                    }
+                                    .padding()
+                                    .background(Color.purple.opacity(0.08))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+                                    )
+                                    .padding(.horizontal)
+
+                                    // Pronunciation card
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Label("Pronunciation", systemImage: "waveform")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+
+                                        Text(result.englishPronunciation)
+                                            .font(.title3)
+                                            .lineSpacing(6)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                                        HStack { Spacer() }
+                                    }
+                                    .padding()
+                                    .background(Color.purple.opacity(0.08))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+                                    )
+                                    .padding(.horizontal)
+                                }
+                                .padding(.bottom, 32)
+                            }
+                        } else {
+                            if let output = viewModel.forwardOutput {
                                 VStack(alignment: .leading, spacing: 10) {
-                                    Label("Detected Meitei Mayek", systemImage: "text.viewfinder")
+                                    Label("Meitei Mayek", systemImage: "character")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
 
-                                    Text(result.detectedScript)
-                                        .font(.system(size: 24))
-                                        .lineSpacing(6)
+                                    Text(output)
+                                        .font(.system(size: 28))
+                                        .lineSpacing(8)
                                         .frame(maxWidth: .infinity, alignment: .leading)
 
                                     HStack {
-                                        // Confidence bar
-                                        GeometryReader { geo in
-                                            ZStack(alignment: .leading) {
-                                                Capsule()
-                                                    .fill(Color(.systemGray5))
-                                                    .frame(height: 6)
-                                                Capsule()
-                                                    .fill(confidenceColor)
-                                                    .frame(width: geo.size.width * result.confidence, height: 6)
-                                            }
-                                        }
-                                        .frame(height: 6)
-
-                                        Text(viewModel.confidencePercent)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .frame(width: 40, alignment: .trailing)
-
+                                        Spacer()
                                         Button {
-                                            UIPasteboard.general.string = result.detectedScript
+                                            UIPasteboard.general.string = output
                                         } label: {
-                                            Image(systemName: "doc.on.doc")
-                                                .foregroundStyle(.secondary)
+                                            Label("Copy", systemImage: "doc.on.doc")
+                                                .font(.caption)
+                                                .foregroundStyle(.purple)
                                         }
                                     }
                                 }
@@ -208,90 +296,12 @@ struct ScanView: View {
                                 .background(Color(.systemGray6))
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                                 .padding(.horizontal)
-
-                                // Arrow
-                                Image(systemName: "arrow.down.circle.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(.purple)
-
-                                // Transliteration card
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Label("Transliteration (Latin)", systemImage: "character.book.closed")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-
-                                    Text(result.romanizedText)
-                                        .font(.title3)
-                                        .lineSpacing(6)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    HStack { Spacer() }
-                                }
-                                .padding()
-                                .background(Color.purple.opacity(0.08))
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.purple.opacity(0.2), lineWidth: 1)
-                                )
-                                .padding(.horizontal)
-
-                                // Pronunciation card
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Label("Pronunciation", systemImage: "waveform")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-
-                                    Text(result.englishPronunciation)
-                                        .font(.title3)
-                                        .lineSpacing(6)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    HStack { Spacer() }
-                                }
-                                .padding()
-                                .background(Color.purple.opacity(0.08))
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.purple.opacity(0.2), lineWidth: 1)
-                                )
-                                .padding(.horizontal)
+                                .padding(.bottom, 32)
                             }
-                            .padding(.bottom, 32)
                         }
-                    } else {
-                        if let output = viewModel.forwardOutput {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Label("Meitei Mayek", systemImage: "character")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
 
-                                Text(output)
-                                    .font(.system(size: 28))
-                                    .lineSpacing(8)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                HStack {
-                                    Spacer()
-                                    Button {
-                                        UIPasteboard.general.string = output
-                                    } label: {
-                                        Label("Copy", systemImage: "doc.on.doc")
-                                            .font(.caption)
-                                            .foregroundStyle(.purple)
-                                    }
-                                }
-                            }
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .padding(.horizontal)
-                            .padding(.bottom, 32)
-                        }
+                        Spacer(minLength: 40)
                     }
-
-                    Spacer(minLength: 40)
                 }
             }
             .navigationTitle("")
@@ -466,7 +476,7 @@ struct TextInputView: View {
                     Task {
                         viewModel.errorMessage = nil
                         await viewModel.translateTypedText()
-                        if viewModel.currentResult != nil {
+                        if viewModel.currentResult != nil || viewModel.forwardOutput != nil {
                             onCompleted()
                             dismiss()
                         }
@@ -510,4 +520,3 @@ struct TextInputView: View {
         .interactiveDismissDisabled(viewModel.isLoading)
     }
 }
-
