@@ -9,9 +9,12 @@ import Foundation
 import UIKit
 import Combine
 import SwiftUI
+import AVFoundation
 
 @MainActor
 class TranslatorViewModel: ObservableObject {
+    
+    private let synthesizer = AVSpeechSynthesizer()
 
     @Published var isLoading: Bool = false
     @Published var currentResult: MMTransliterationResult? = nil
@@ -26,12 +29,7 @@ class TranslatorViewModel: ObservableObject {
         case englishToMayek
     }
 
-    @Published var mode: TransliterationMode = .mayekToEnglish {
-        didSet {
-            forwardOutput = nil
-            currentResult = nil
-        }
-    }
+    @Published var mode: TransliterationMode = .mayekToEnglish
     @Published var forwardOutput: String? = nil
 
     private var activeInput: String {
@@ -102,8 +100,13 @@ class TranslatorViewModel: ObservableObject {
 
         isLoading = true
         errorMessage = nil
-        currentResult = nil
-        forwardOutput = nil
+        
+        // Only clear the result for the current mode
+        if mode == .mayekToEnglish {
+            currentResult = nil
+        } else {
+            forwardOutput = nil
+        }
 
         do {
             switch mode {
@@ -175,6 +178,22 @@ class TranslatorViewModel: ObservableObject {
            let decoded = try? JSONDecoder().decode([TranslationRecord].self, from: data) {
             history = decoded
         }
+    }
+
+    func speak(_ text: String) {
+        if synthesizer.isSpeaking {
+            synthesizer.stopSpeaking(at: .immediate)
+        }
+        
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        
+        // Ensure audio plays even if the silent switch is on
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        
+        synthesizer.speak(utterance)
     }
 
     var confidencePercent: String {

@@ -206,12 +206,20 @@ struct ScanView: View {
                                                 .frame(width: 40, alignment: .trailing)
 
                                             Button {
+                                                viewModel.speak(result.romanizedText)
+                                            } label: {
+                                                Image(systemName: "speaker.wave.2.circle.fill")
+                                                    .foregroundStyle(.purple)
+                                            }
+
+                                            Button {
                                                 UIPasteboard.general.string = result.detectedScript
                                             } label: {
                                                 Image(systemName: "doc.on.doc")
                                                     .foregroundStyle(.secondary)
                                             }
                                         }
+
                                     }
                                     .padding()
                                     .background(Color(.systemGray6))
@@ -225,7 +233,7 @@ struct ScanView: View {
 
                                     // Transliteration card
                                     VStack(alignment: .leading, spacing: 10) {
-                                        Label("Transliteration (Latin)", systemImage: "character.book.closed")
+                                        Label("Transliteration (English)", systemImage: "character.book.closed")
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
 
@@ -234,29 +242,17 @@ struct ScanView: View {
                                             .lineSpacing(6)
                                             .frame(maxWidth: .infinity, alignment: .leading)
 
-                                        HStack { Spacer() }
-                                    }
-                                    .padding()
-                                    .background(Color.purple.opacity(0.08))
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(Color.purple.opacity(0.2), lineWidth: 1)
-                                    )
-                                    .padding(.horizontal)
+                                        HStack {
+                                            Spacer()
+                                            Button {
+                                                viewModel.speak(result.romanizedText)
+                                            } label: {
+                                                Image(systemName: "speaker.wave.2.circle.fill")
+                                                    .font(.title3)
+                                                    .foregroundStyle(.purple)
+                                            }
+                                        }
 
-                                    // Pronunciation card
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        Label("Pronunciation", systemImage: "waveform")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-
-                                        Text(result.englishPronunciation)
-                                            .font(.title3)
-                                            .lineSpacing(6)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                                        HStack { Spacer() }
                                     }
                                     .padding()
                                     .background(Color.purple.opacity(0.08))
@@ -282,6 +278,14 @@ struct ScanView: View {
                                         .frame(maxWidth: .infinity, alignment: .leading)
 
                                     HStack {
+                                        Button {
+                                            viewModel.speak(viewModel.englishTypedText)
+                                        } label: {
+                                            Label("Listen", systemImage: "speaker.wave.2.circle.fill")
+                                                .font(.caption)
+                                                .foregroundStyle(.purple)
+                                        }
+
                                         Spacer()
                                         Button {
                                             UIPasteboard.general.string = output
@@ -291,6 +295,7 @@ struct ScanView: View {
                                                 .foregroundStyle(.purple)
                                         }
                                     }
+
                                 }
                                 .padding()
                                 .background(Color(.systemGray6))

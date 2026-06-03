@@ -58,6 +58,13 @@ struct ResultView: View {
                                 .frame(width: 40, alignment: .trailing)
 
                             Button {
+                                viewModel.speak(result.englishTransliteration)
+                            } label: {
+                                Image(systemName: "speaker.wave.2.circle.fill")
+                                    .foregroundStyle(.purple)
+                            }
+
+                            Button {
                                 UIPasteboard.general.string = result.detectedScript
                                 withAnimation { scriptCopied = true }
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
@@ -102,7 +109,16 @@ struct ResultView: View {
                             .foregroundStyle(.tertiary)
 
                         HStack {
+                            Button {
+                                viewModel.speak(result.englishTransliteration)
+                            } label: {
+                                Image(systemName: "speaker.wave.2.circle.fill")
+                                    .font(.title3)
+                                    .foregroundStyle(.purple)
+                            }
+
                             Spacer()
+                            
                             Button {
                                 UIPasteboard.general.string = result.englishTransliteration
                                 withAnimation { englishCopied = true }
