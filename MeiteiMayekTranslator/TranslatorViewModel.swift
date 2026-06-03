@@ -19,6 +19,8 @@ class TranslatorViewModel: ObservableObject {
     @Published var history: [TranslationRecord] = []
     @Published var selectedImage: UIImage? = nil
     @Published var typedText: String = ""
+    private var mayekInput: String = ""
+    private var englishInput: String = ""
 
     enum TransliterationMode: String, CaseIterable {
         case mayekToEnglish
@@ -26,8 +28,21 @@ class TranslatorViewModel: ObservableObject {
     }
 
     @Published var mode: TransliterationMode = .mayekToEnglish {
+        willSet {
+            // Save current input before switching
+            if mode == .mayekToEnglish {
+                mayekInput = typedText
+            } else {
+                englishInput = typedText
+            }
+        }
         didSet {
-            typedText = ""
+            // Restore input for the new mode
+            if mode == .mayekToEnglish {
+                typedText = mayekInput
+            } else {
+                typedText = englishInput
+            }
             forwardOutput = nil
             currentResult = nil
         }
@@ -121,6 +136,9 @@ class TranslatorViewModel: ObservableObject {
         errorMessage = nil
         selectedImage = nil
         typedText = ""
+        mayekInput = ""
+        englishInput = ""
+        forwardOutput = nil
     }
 
     /// Clears input state so the user can transliterate another typed string without leaving the result screen.
