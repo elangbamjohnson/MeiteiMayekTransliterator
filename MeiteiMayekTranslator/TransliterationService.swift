@@ -53,13 +53,26 @@ final class TransliterationService {
         self.romanizer = romanizer
     }
 
-    func processImage(_ image: UIImage) async throws -> TransliterationResult {
+    func processImage(_ image: UIImage) async throws -> MMTransliterationResult {
         let (rawText, source) = try await recognizeMeiteiText(from: image)
         return try buildResult(from: rawText, ocrSource: source, confidenceBase: 0.85)
     }
 
-    func transliterateText(_ text: String) throws -> TransliterationResult {
+    func transliterateText(_ text: String) throws -> MMTransliterationResult {
         try buildResult(from: text, ocrSource: "typed", confidenceBase: 1.0)
+    }
+    
+    func transliterateEnglishToMayek(_ text: String) throws -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw ServiceError.transliterationFailed("Please enter some text.")
+        }
+        let mayek = MeiteiMayekReferenceForwardTransliterator.transliterate(trimmed)
+        let output = mayek.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !output.isEmpty else {
+            throw ServiceError.transliterationFailed("Transliteration produced empty output.")
+        }
+        return output
     }
 
     // MARK: - OCR (no LLM)
@@ -108,7 +121,7 @@ final class TransliterationService {
         from sourceText: String,
         ocrSource: String,
         confidenceBase: Double
-    ) throws -> TransliterationResult {
+    ) throws -> MMTransliterationResult {
         let trimmed = MeiteiTextUtilities.cleanOCRText(sourceText)
         guard !trimmed.isEmpty else {
             throw ServiceError.transliterationFailed("No text to transliterate.")
@@ -136,7 +149,7 @@ final class TransliterationService {
         let mayekRatio = MeiteiTextUtilities.mayekRatio(in: sourceForTransliteration)
         let confidence = min(1.0, confidenceBase * (0.6 + 0.4 * mayekRatio))
 
-        return TransliterationResult(
+        return MMTransliterationResult(
             detectedScript: sourceForTransliteration,
             englishTransliteration: english,
             confidence: confidence,

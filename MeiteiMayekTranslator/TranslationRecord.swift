@@ -7,17 +7,9 @@
 
 import Foundation
 
-/// Result of scan or typed-input transliteration pipeline.
-struct TransliterationResult {
-    let detectedScript: String
-    let englishTransliteration: String
-    let confidence: Double
-    let ocrSource: String?
-    let transliterationEngine: String
-}
-
-/// Backward-compatible alias used across the app target.
-typealias OCRTranslationResult = TransliterationResult
+/// Backward-compatible aliases used across the app target.
+typealias TransliterationResult = MMTransliterationResult
+typealias OCRTranslationResult = MMTransliterationResult
 
 struct TranslationRecord: Identifiable, Codable {
     let id: UUID
@@ -95,3 +87,15 @@ struct TranslationRecord: Identifiable, Codable {
         try container.encode(createdAt, forKey: .createdAt)
     }
 }
+extension TranslationRecord {
+    init(from result: MMTransliterationResult) {
+        self.init(
+            originalScript: result.detectedScript,
+            englishTransliteration: result.englishTransliteration,
+            confidence: result.confidence,
+            ocrSource: result.ocrSource,
+            transliterationEngine: result.transliterationEngine ?? "On-device"
+        )
+    }
+}
+

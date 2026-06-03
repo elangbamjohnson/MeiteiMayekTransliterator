@@ -223,6 +223,7 @@ enum MeiteiMayekReferenceReverseTransliterator {
         register("ꯖ", phoneme: "j")
         register("ꯏ", phoneme: "ee")
         register("ꯎ", phoneme: "oo")
+        register("ꯥꯏ", phoneme: "ai")
 
         return mayekToPhoneme
             .map { Fragment(mayek: $0.key, phoneme: $0.value.phoneme, isApunMayek: $0.value.isApun) }
@@ -275,3 +276,4 @@ enum MeiteiMayekReferenceReverseTransliterator {
         return !fragmentScalars.isEmpty
     }
 }
+

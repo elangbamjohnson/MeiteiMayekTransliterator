@@ -14,11 +14,19 @@ import SwiftUI
 class TranslatorViewModel: ObservableObject {
 
     @Published var isLoading: Bool = false
-    @Published var currentResult: TransliterationResult? = nil
+    @Published var currentResult: MMTransliterationResult? = nil
     @Published var errorMessage: String? = nil
     @Published var history: [TranslationRecord] = []
     @Published var selectedImage: UIImage? = nil
     @Published var typedText: String = ""
+
+    enum TransliterationMode: String, CaseIterable {
+        case mayekToEnglish
+        case englishToMayek
+    }
+
+    @Published var mode: TransliterationMode = .mayekToEnglish
+    @Published var forwardOutput: String? = nil
 
     private let service = TransliterationService()
     private let historyKey = "translation_history"
@@ -75,7 +83,31 @@ class TranslatorViewModel: ObservableObject {
     }
 
     func translateTypedText() async {
-        await transliterateTypedText()
+        guard !typedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            errorMessage = "Please enter some text."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        currentResult = nil
+        forwardOutput = nil
+
+        do {
+            switch mode {
+            case .mayekToEnglish:
+                let result = try service.transliterateText(typedText)
+                currentResult = result
+                saveToHistory(result)
+            case .englishToMayek:
+                let output = try service.transliterateEnglishToMayek(typedText)
+                forwardOutput = output
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
     }
 
     func reset() {
@@ -93,16 +125,10 @@ class TranslatorViewModel: ObservableObject {
         }
     }
 
-    private func saveToHistory(_ result: TransliterationResult) {
+    private func saveToHistory(_ result: MMTransliterationResult) {
         guard !result.detectedScript.isEmpty else { return }
 
-        let record = TranslationRecord(
-            originalScript: result.detectedScript,
-            englishTransliteration: result.englishTransliteration,
-            confidence: result.confidence,
-            ocrSource: result.ocrSource,
-            transliterationEngine: result.transliterationEngine
-        )
+        let record = TranslationRecord(from: result)
         history.insert(record, at: 0)
         if history.count > 50 {
             history = Array(history.prefix(50))
@@ -147,3 +173,4 @@ class TranslatorViewModel: ObservableObject {
         }
     }
 }
+

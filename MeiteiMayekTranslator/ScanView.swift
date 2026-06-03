@@ -14,8 +14,6 @@ struct ScanView: View {
     @State private var showImagePicker = false
     @State private var showPhotoPicker = false
     @State private var imagePickerSource: UIImagePickerController.SourceType = .camera
-    @State private var showTextInput = false
-    @State private var navigateToResult = false
     
 
     var body: some View {
@@ -28,7 +26,7 @@ struct ScanView: View {
                         Text("ꯃꯤꯇꯩ ꯃꯌꯦꯛ")
                             .font(.system(size: 32, weight: .medium))
                             .foregroundStyle(.purple)
-                        Text("Meitei Mayek → English transliteration")
+                        Text(viewModel.mode == .mayekToEnglish ? "Meitei Mayek → English transliteration" : "English → Meitei Mayek (to Meitei Mayek script)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Link("Same spelling rules as Meitei Mayek transliteration tool",
@@ -36,6 +34,13 @@ struct ScanView: View {
                             .font(.caption2)
                     }
                     .padding(.top, 8)
+                    
+                    Picker("Mode", selection: $viewModel.mode) {
+                        Text("Mayek → English").tag(TranslatorViewModel.TransliterationMode.mayekToEnglish)
+                        Text("English → Mayek").tag(TranslatorViewModel.TransliterationMode.englishToMayek)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
 
                     // Camera capture card
                     Button {
@@ -48,7 +53,7 @@ struct ScanView: View {
                             RoundedRectangle(cornerRadius: 20)
                                 .fill(Color(.systemGray6))
                                 .frame(height: 180)
-                                .opacity(UIImagePickerController.isSourceTypeAvailable(.camera) ? 1.0 : 0.5)
+                                .opacity(UIImagePickerController.isSourceTypeAvailable(.camera) ? 1 : 0.5)
 
                             VStack(spacing: 12) {
                                 Image(systemName: "camera.fill")
@@ -79,20 +84,38 @@ struct ScanView: View {
                                 .foregroundStyle(.primary)
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
-
-                        // Type text
-                        Button {
-                            showTextInput = true
-                        } label: {
-                            Label("Type text", systemImage: "keyboard")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color(.systemGray6))
-                                .foregroundStyle(.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                        }
                     }
                     .padding(.horizontal)
+
+                    // Inline type-to-transliterate section
+                    VStack(spacing: 12) {
+                        Text(viewModel.mode == .mayekToEnglish ? "Type Meitei Mayek text to transliterate" : "Type English text to convert to Meitei Mayek")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+
+                        TextEditor(text: $viewModel.typedText)
+                            .font(.system(size: 20))
+                            .frame(height: 120)
+                            .padding(12)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .padding(.horizontal)
+
+                        Button {
+                            Task { await viewModel.translateTypedText() }
+                        } label: {
+                            Text(viewModel.isLoading ? "Transliterating…" : "Transliterate")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(.purple)
+                                .foregroundStyle(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .padding(.horizontal)
+                        }
+                        .disabled(viewModel.isLoading || viewModel.typedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
 
                     // Selected image preview
                     if let image = viewModel.selectedImage {
@@ -139,6 +162,135 @@ struct ScanView: View {
                         .padding()
                     }
 
+                    // Inline result area
+                    if viewModel.mode == .mayekToEnglish {
+                        if let result = viewModel.currentResult {
+                            VStack(spacing: 20) {
+                                // Original script card
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Label("Detected Meitei Mayek", systemImage: "text.viewfinder")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+
+                                    Text(result.detectedScript)
+                                        .font(.system(size: 24))
+                                        .lineSpacing(6)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    HStack {
+                                        // Confidence bar
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                Capsule()
+                                                    .fill(Color(.systemGray5))
+                                                    .frame(height: 6)
+                                                Capsule()
+                                                    .fill(confidenceColor)
+                                                    .frame(width: geo.size.width * result.confidence, height: 6)
+                                            }
+                                        }
+                                        .frame(height: 6)
+
+                                        Text(viewModel.confidencePercent)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 40, alignment: .trailing)
+
+                                        Button {
+                                            UIPasteboard.general.string = result.detectedScript
+                                        } label: {
+                                            Image(systemName: "doc.on.doc")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .padding(.horizontal)
+
+                                // Arrow
+                                Image(systemName: "arrow.down.circle.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.purple)
+
+                                // Transliteration card
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Label("Transliteration (Latin)", systemImage: "character.book.closed")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+
+                                    Text(result.romanizedText)
+                                        .font(.title3)
+                                        .lineSpacing(6)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    HStack { Spacer() }
+                                }
+                                .padding()
+                                .background(Color.purple.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+                                )
+                                .padding(.horizontal)
+
+                                // Pronunciation card
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Label("Pronunciation", systemImage: "waveform")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+
+                                    Text(result.englishPronunciation)
+                                        .font(.title3)
+                                        .lineSpacing(6)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    HStack { Spacer() }
+                                }
+                                .padding()
+                                .background(Color.purple.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+                                )
+                                .padding(.horizontal)
+                            }
+                            .padding(.bottom, 32)
+                        }
+                    } else {
+                        if let output = viewModel.forwardOutput {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Label("Meitei Mayek", systemImage: "character")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                Text(output)
+                                    .font(.system(size: 28))
+                                    .lineSpacing(8)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                HStack {
+                                    Spacer()
+                                    Button {
+                                        UIPasteboard.general.string = output
+                                    } label: {
+                                        Label("Copy", systemImage: "doc.on.doc")
+                                            .font(.caption)
+                                            .foregroundStyle(.purple)
+                                    }
+                                }
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .padding(.horizontal)
+                            .padding(.bottom, 32)
+                        }
+                    }
+
                     Spacer(minLength: 40)
                 }
             }
@@ -148,9 +300,6 @@ struct ScanView: View {
                 ImagePickerView(sourceType: imagePickerSource) { image in
                     Task {
                         await viewModel.translateImage(image)
-                        if viewModel.currentResult != nil {
-                            navigateToResult = true
-                        }
                     }
                 }
             }
@@ -158,30 +307,18 @@ struct ScanView: View {
                 PhotoPickerView { image in
                     Task {
                         await viewModel.translateImage(image)
-                        if viewModel.currentResult != nil {
-                            navigateToResult = true
-                        }
                     }
                 }
             }
-            .sheet(isPresented: $showTextInput) {
-                TextInputView(
-                    onCompleted: {
-                        showTextInput = false
-                        if viewModel.currentResult != nil {
-                            navigateToResult = true
-                        }
-                    },
-                    clearTextOnAppear: true
-                )
-                .environmentObject(viewModel)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-            }
-            .navigationDestination(isPresented: $navigateToResult) {
-                ResultView()
-                    .environmentObject(viewModel)
-            }
+        }
+    }
+    
+    private var confidenceColor: Color {
+        guard let result = viewModel.currentResult else { return .gray }
+        switch result.confidence {
+        case 0.8...: return .green
+        case 0.5...: return .orange
+        default:     return .red
         }
     }
 }
@@ -373,3 +510,4 @@ struct TextInputView: View {
         .interactiveDismissDisabled(viewModel.isLoading)
     }
 }
+
