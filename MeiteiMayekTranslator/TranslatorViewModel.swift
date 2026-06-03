@@ -25,7 +25,13 @@ class TranslatorViewModel: ObservableObject {
         case englishToMayek
     }
 
-    @Published var mode: TransliterationMode = .mayekToEnglish
+    @Published var mode: TransliterationMode = .mayekToEnglish {
+        didSet {
+            typedText = ""
+            forwardOutput = nil
+            currentResult = nil
+        }
+    }
     @Published var forwardOutput: String? = nil
 
     private let service = TransliterationService()
