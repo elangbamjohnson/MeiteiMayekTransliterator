@@ -95,7 +95,7 @@ struct ScanView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal)
 
-                        TextEditor(text: $viewModel.typedText)
+                        TextEditor(text: viewModel.mode == .mayekToEnglish ? $viewModel.mayekTypedText : $viewModel.englishTypedText)
                             .font(.system(size: 20))
                             .frame(height: 120)
                             .padding(12)
@@ -114,7 +114,7 @@ struct ScanView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                                 .padding(.horizontal)
                         }
-                        .disabled(viewModel.isLoading || viewModel.typedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(viewModel.isLoading || (viewModel.mode == .mayekToEnglish ? viewModel.mayekTypedText : viewModel.englishTypedText).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
 
                     // Selected image preview
@@ -420,7 +420,7 @@ struct TextInputView: View {
                     .padding(.horizontal)
 
                 ZStack(alignment: .topLeading) {
-                    TextEditor(text: $viewModel.typedText)
+                    TextEditor(text: viewModel.mode == .mayekToEnglish ? $viewModel.mayekTypedText : $viewModel.englishTypedText)
                         .font(.system(size: 22))
                         .frame(minHeight: 180)
                         .scrollContentBackground(.hidden)
@@ -429,7 +429,7 @@ struct TextInputView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
 
-                    if viewModel.typedText.isEmpty {
+                    if (viewModel.mode == .mayekToEnglish ? viewModel.mayekTypedText : viewModel.englishTypedText).isEmpty {
                         Text("Tap here and type or paste Meitei Mayek…")
                             .font(.system(size: 17))
                             .foregroundStyle(.tertiary)

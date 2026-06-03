@@ -18,9 +18,8 @@ class TranslatorViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var history: [TranslationRecord] = []
     @Published var selectedImage: UIImage? = nil
-    @Published var typedText: String = ""
-    private var mayekInput: String = ""
-    private var englishInput: String = ""
+    @Published var mayekTypedText: String = ""
+    @Published var englishTypedText: String = ""
 
     enum TransliterationMode: String, CaseIterable {
         case mayekToEnglish
@@ -28,26 +27,16 @@ class TranslatorViewModel: ObservableObject {
     }
 
     @Published var mode: TransliterationMode = .mayekToEnglish {
-        willSet {
-            // Save current input before switching
-            if mode == .mayekToEnglish {
-                mayekInput = typedText
-            } else {
-                englishInput = typedText
-            }
-        }
         didSet {
-            // Restore input for the new mode
-            if mode == .mayekToEnglish {
-                typedText = mayekInput
-            } else {
-                typedText = englishInput
-            }
             forwardOutput = nil
             currentResult = nil
         }
     }
     @Published var forwardOutput: String? = nil
+
+    private var activeInput: String {
+        mode == .mayekToEnglish ? mayekTypedText : englishTypedText
+    }
 
     private let service = TransliterationService()
     private let historyKey = "translation_history"
@@ -78,7 +67,8 @@ class TranslatorViewModel: ObservableObject {
     }
 
     func transliterateTypedText() async {
-        guard !typedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let input = activeInput
+        guard !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             errorMessage = "Please enter some Meitei Mayek text."
             return
         }
@@ -88,7 +78,7 @@ class TranslatorViewModel: ObservableObject {
         currentResult = nil
 
         do {
-            let result = try service.transliterateText(typedText)
+            let result = try service.transliterateText(input)
             currentResult = result
             saveToHistory(result)
         } catch {
@@ -104,7 +94,8 @@ class TranslatorViewModel: ObservableObject {
     }
 
     func translateTypedText() async {
-        guard !typedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let input = activeInput
+        guard !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             errorMessage = "Please enter some text."
             return
         }
@@ -117,11 +108,11 @@ class TranslatorViewModel: ObservableObject {
         do {
             switch mode {
             case .mayekToEnglish:
-                let result = try service.transliterateText(typedText)
+                let result = try service.transliterateText(input)
                 currentResult = result
                 saveToHistory(result)
             case .englishToMayek:
-                let output = try service.transliterateEnglishToMayek(typedText)
+                let output = try service.transliterateEnglishToMayek(input)
                 forwardOutput = output
             }
         } catch {
@@ -135,9 +126,8 @@ class TranslatorViewModel: ObservableObject {
         currentResult = nil
         errorMessage = nil
         selectedImage = nil
-        typedText = ""
-        mayekInput = ""
-        englishInput = ""
+        mayekTypedText = ""
+        englishTypedText = ""
         forwardOutput = nil
     }
 
@@ -145,7 +135,11 @@ class TranslatorViewModel: ObservableObject {
     func prepareForAnotherTypedTransliteration(clearText: Bool = true) {
         errorMessage = nil
         if clearText {
-            typedText = ""
+            if mode == .mayekToEnglish {
+                mayekTypedText = ""
+            } else {
+                englishTypedText = ""
+            }
         }
     }
 
