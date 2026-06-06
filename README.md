@@ -1,4 +1,4 @@
-# Meitei Mayek Translator
+# Meitei Mayek Transliterator
 
 Meitei Mayek Translator is a SwiftUI app for transliterating between Meitei Mayek script and English/Roman spelling. It supports typed text, camera/photo-library image input, OCR-assisted script extraction, result sharing, speech playback, and a lightweight local history of previous transliterations.
 
