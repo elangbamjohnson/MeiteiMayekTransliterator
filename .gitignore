@@ -1,5 +1,4 @@
 # Xcode
-#
 build/
 DerivedData/
 *.pbxuser
@@ -13,14 +12,16 @@ DerivedData/
 xcuserdata/
 *.xccheckout
 *.moved-aside
-DerivedData
 *.hmap
 *.ipa
 *.xcuserstate
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
 MeiteiMayekTranslator.xcodeproj/xcshareddata/xcschemes/MeiteiMayekTranslator.xcscheme
 
 # Swift Package Manager
-#
 .build/
 Packages/
 Package.pins
@@ -28,8 +29,19 @@ Package.resolved
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .swiftpm/xcode/xcuserdata
 
-# macOS
-#
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# macOS/editor
 .DS_Store
 *.swp
 *~
