@@ -205,55 +205,55 @@ The Core ML model is the primary OCR path for Meitei Mayek. Apple Vision and OCR
 
 | File | Responsibility |
 | --- | --- |
-| `MeiteiMayekTranslatorApp.swift` | App entry point. Creates the main `WindowGroup` and loads `ContentView`. |
-| `ContentView.swift` | Root tab interface. Hosts the Scan and History tabs and injects `TranslatorViewModel` into the environment. |
+| `App/MeiteiMayekTranslatorApp.swift` | App entry point. Creates the main `WindowGroup` and loads `ContentView`. |
+| `Views/ContentView.swift` | Root tab interface. Hosts the Scan and History tabs and injects `TranslatorViewModel` into the environment. |
 
 ### UI Layer
 
 | File | Responsibility |
 | --- | --- |
-| `ScanView.swift` | Main UI for scanning, selecting photos, typing input, switching transliteration mode, and displaying inline results. Also contains UIKit/PhotosUI picker wrappers and `TextInputView`. |
-| `ResultView.swift` | Detailed result screen for completed Meitei Mayek-to-English transliteration. Shows source image, detected script, confidence, OCR source, Roman transliteration, copy/share/speak actions, and navigation actions. |
-| `HistoryView.swift` | History tab. Displays saved translation records, empty states, delete actions, and clear-all confirmation. |
+| `Views/ScanView.swift` | Main UI for scanning, selecting photos, typing input, switching transliteration mode, and displaying inline results. Also contains UIKit/PhotosUI picker wrappers and `TextInputView`. |
+| `Views/ResultView.swift` | Detailed result screen for completed Meitei Mayek-to-English transliteration. Shows source image, detected script, confidence, OCR source, Roman transliteration, copy/share/speak actions, and navigation actions. |
+| `Views/HistoryView.swift` | History tab. Displays saved translation records, empty states, delete actions, and clear-all confirmation. |
 
 ### View Model
 
 | File | Responsibility |
 | --- | --- |
-| `TranslatorViewModel.swift` | Main observable state container. Tracks loading/error/result state, selected image, typed input, mode, forward output, history, and speech synthesis. Coordinates calls into `TransliterationService`, persists history, and exposes UI helper values like confidence text/color. |
+| `ViewModels/TranslatorViewModel.swift` | Main observable state container. Tracks loading/error/result state, selected image, typed input, mode, forward output, history, and speech synthesis. Coordinates calls into `TransliterationService`, persists history, and exposes UI helper values like confidence text/color. |
 
 ### OCR and Transliteration Services
 
 | File | Responsibility |
 | --- | --- |
-| `TransliterationService.swift` | Transliteration-facing service layer. It asks `OCRService` for extracted Meitei Mayek text, validates script content, builds `MMTransliterationResult`, and exposes typed-text transliteration in both directions. Also contains local visual fallback matchers. |
-| `OCRService.swift` | OCR orchestration layer. Runs image variants through the provider chain, ranks candidates by Meitei Mayek content and confidence, rejects low-confidence blocks, and preserves reading order. |
-| `OCRModels.swift` | Shared OCR protocols and structured models such as `OCRRecognitionResult`, `OCRTextBlock`, `OCRTextCandidate`, and `OCRImageVariant`. |
-| `OCRImagePreprocessor.swift` | Image preparation pipeline. Normalizes orientation, upscales small text, creates enhanced and binarized variants, crops dark text regions, and avoids lossy compression before OCR providers run. |
-| `MeiteiMayekCoreMLOCRService.swift` | Primary trained-model OCR engine. Segments image lines, removes edge artifacts, runs the Core ML model, decodes logits with the model vocabulary, extracts Meitei Mayek Unicode, and falls back when needed. |
-| `MeiteiMayekTextCleaner.swift` | Meitei Mayek-specific text cleaner. Keeps valid `U+ABC0-U+ABFF` and `U+AAE0-U+AAFF` Unicode scalars, preserves line breaks, strips OCR wrappers/noise, and avoids unsafe character replacement. |
-| `OCRDebugLogger.swift` | Debug helper. When `OCRDebugEnabled` is set in `UserDefaults` on a debug build, writes OCR image variants to the temporary directory and logs raw/cleaned OCR output. |
-| `OCRSpaceService.swift` | Cloud OCR adapter. Compresses images, submits them to OCR.space, decodes responses, retries on timeout with smaller image data, and reports OCR errors. |
-| `VisionOCRService.swift` | On-device OCR adapter using Apple Vision text recognition. It uses accurate mode, disables language correction, passes image orientation, captures top candidates, and sorts text blocks by reading order. |
-| `MeiteiMayekRomanizer.swift` | Small adapter that converts Meitei Mayek text to Roman/English spelling through `MeiteiMayekReferenceReverseTransliterator`. |
+| `Services/Transliteration/TransliterationService.swift` | Transliteration-facing service layer. It asks `OCRService` for extracted Meitei Mayek text, validates script content, builds `MMTransliterationResult`, and exposes typed-text transliteration in both directions. Also contains local visual fallback matchers. |
+| `Services/OCR/OCRService.swift` | OCR orchestration layer. Runs image variants through the provider chain, ranks candidates by Meitei Mayek content and confidence, rejects low-confidence blocks, and preserves reading order. |
+| `Domain/Models/OCRModels.swift` | Shared OCR protocols and structured models such as `OCRRecognitionResult`, `OCRTextBlock`, `OCRTextCandidate`, and `OCRImageVariant`. |
+| `Services/OCR/OCRImagePreprocessor.swift` | Image preparation pipeline. Normalizes orientation, upscales small text, creates enhanced and binarized variants, crops dark text regions, and avoids lossy compression before OCR providers run. |
+| `Services/OCR/MeiteiMayekCoreMLOCRService.swift` | Primary trained-model OCR engine. Segments image lines, removes edge artifacts, runs the Core ML model, decodes logits with the model vocabulary, extracts Meitei Mayek Unicode, and falls back when needed. |
+| `Utilities/MeiteiMayekTextCleaner.swift` | Meitei Mayek-specific text cleaner. Keeps valid `U+ABC0-U+ABFF` and `U+AAE0-U+AAFF` Unicode scalars, preserves line breaks, strips OCR wrappers/noise, and avoids unsafe character replacement. |
+| `Services/OCR/OCRDebugLogger.swift` | Debug helper. When `OCRDebugEnabled` is set in `UserDefaults` on a debug build, writes OCR image variants to the temporary directory and logs raw/cleaned OCR output. |
+| `Services/OCR/OCRSpaceService.swift` | Cloud OCR adapter. Compresses images, submits them to OCR.space, decodes responses, retries on timeout with smaller image data, and reports OCR errors. |
+| `Services/OCR/VisionOCRService.swift` | On-device OCR adapter using Apple Vision text recognition. It uses accurate mode, disables language correction, passes image orientation, captures top candidates, and sorts text blocks by reading order. |
+| `Services/Transliteration/MeiteiMayekRomanizer.swift` | Small adapter that converts Meitei Mayek text to Roman/English spelling through `MeiteiMayekReferenceReverseTransliterator`. |
 
 ### Reference Transliteration Engine
 
 | File | Responsibility |
 | --- | --- |
-| `MeiteiMayekReferencePhonemes.swift` | Reference phoneme table for vowels, consonants, lonsum letters, digits, and apun mayek combinations. |
-| `MeiteiMayekReferenceTransliterator.swift` | Bidirectional rule engine. `MeiteiMayekReferenceForwardTransliterator` converts English/Roman input to Meitei Mayek, while `MeiteiMayekReferenceReverseTransliterator` tokenizes Meitei Mayek and converts it back to Roman output. |
-| `MeiteiMayekEnglishFormatter.swift` | Normalizes raw romanization into display-friendly English spelling, including whitespace cleanup, simple spelling normalization, and title-casing for display output. |
-| `MeiteiTextUtilities.swift` | Text helper methods for Meitei Mayek Unicode detection, Mayek character counting, Mayek ratio scoring, OCR cleanup, Mayek-only extraction, and English transliteration validation. |
-| `ScriptDetector.swift` | Detects whether text contains Meitei Mayek, Bengali, or unknown script based on Unicode scalar ranges. |
+| `Services/Transliteration/MeiteiMayekReferencePhonemes.swift` | Reference phoneme table for vowels, consonants, lonsum letters, digits, and apun mayek combinations. |
+| `Services/Transliteration/MeiteiMayekReferenceTransliterator.swift` | Bidirectional rule engine. `MeiteiMayekReferenceForwardTransliterator` converts English/Roman input to Meitei Mayek, while `MeiteiMayekReferenceReverseTransliterator` tokenizes Meitei Mayek and converts it back to Roman output. |
+| `Services/Transliteration/MeiteiMayekEnglishFormatter.swift` | Normalizes raw romanization into display-friendly English spelling, including whitespace cleanup, simple spelling normalization, and title-casing for display output. |
+| `Utilities/MeiteiTextUtilities.swift` | Text helper methods for Meitei Mayek Unicode detection, Mayek character counting, Mayek ratio scoring, OCR cleanup, Mayek-only extraction, and English transliteration validation. |
+| `Domain/Models/ScriptDetector.swift` | Detects whether text contains Meitei Mayek, Bengali, or unknown script based on Unicode scalar ranges. |
 
 ### Models and Compatibility
 
 | File | Responsibility |
 | --- | --- |
-| `TransliterationResult.swift` | Defines `MMTransliterationResult`, the main result model used by the UI and service layer. Includes script text, Roman transliteration, confidence, OCR source, engine name, timestamp, and UI convenience accessors. |
-| `TranslationRecord.swift` | Defines the Codable history model saved to `UserDefaults`. Also includes compatibility aliases and backward-compatible decoding for older result field names. |
-| `TransliterationResult+Compat.swift` | Deprecated compatibility placeholder. Compatibility has moved into the core model. |
+| `Domain/Models/TransliterationResult.swift` | Defines `MMTransliterationResult`, the main result model used by the UI and service layer. Includes script text, Roman transliteration, confidence, OCR source, engine name, timestamp, and UI convenience accessors. |
+| `Domain/Models/TranslationRecord.swift` | Defines the Codable history model saved to `UserDefaults`. Also includes compatibility aliases and backward-compatible decoding for older result field names. |
+| `Domain/Models/TransliterationResult+Compat.swift` | Deprecated compatibility placeholder. Compatibility has moved into the core model. |
 
 ### Tests and Scripts
 
@@ -317,29 +317,15 @@ MeiteiMayekTranslator/
 │   ├── Models/
 │   │   ├── MeiteiMayekOCR.mlpackage/
 │   │   └── MeiteiMayekOCRVocab.json
-│   ├── MeiteiMayekTranslatorApp.swift
-│   ├── ContentView.swift
-│   ├── ScanView.swift
-│   ├── ResultView.swift
-│   ├── HistoryView.swift
-│   ├── TranslatorViewModel.swift
-│   ├── TransliterationService.swift
-│   ├── OCRService.swift
-│   ├── OCRModels.swift
-│   ├── OCRImagePreprocessor.swift
-│   ├── OCRDebugLogger.swift
-│   ├── MeiteiMayekCoreMLOCRService.swift
-│   ├── MeiteiMayekTextCleaner.swift
-│   ├── OCRSpaceService.swift
-│   ├── VisionOCRService.swift
-│   ├── TransliterationResult.swift
-│   ├── TranslationRecord.swift
-│   ├── MeiteiMayekRomanizer.swift
-│   ├── MeiteiMayekReferencePhonemes.swift
-│   ├── MeiteiMayekReferenceTransliterator.swift
-│   ├── MeiteiMayekEnglishFormatter.swift
-│   ├── MeiteiTextUtilities.swift
-│   ├── ScriptDetector.swift
+│   ├── App/
+│   ├── Views/
+│   ├── ViewModels/
+│   ├── Domain/
+│   │   └── Models/
+│   ├── Services/
+│   │   ├── OCR/
+│   │   └── Transliteration/
+│   ├── Utilities/
 │   └── Assets.xcassets/
 ├── MeiteiMayekTranslatorTests/
 ├── MeiteiMayekTranslatorUITests/
