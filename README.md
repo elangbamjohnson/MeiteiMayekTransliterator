@@ -90,6 +90,10 @@ flowchart TD
 
 After OCR extracts Meitei Mayek characters, the app does not directly display raw model text as the final answer. The extracted script is wrapped in `OCRRecognitionResult`, ranked by `OCRService`, passed to `TransliterationService`, and finally romanized by `MeiteiMayekRomanizer`.
 
+## Study Guide
+
+For a step-by-step learning path through the app architecture, OCR preprocessing, Hugging Face/PyTorch to Core ML export, Swift model inference, and transliteration engine, see [docs/STUDY_PLAN.md](docs/STUDY_PLAN.md).
+
 ## Core ML OCR Model
 
 The primary Meitei Mayek OCR path is now `MeiteiMayekCoreMLOCRService`.
