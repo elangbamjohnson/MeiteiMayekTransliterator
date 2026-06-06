@@ -7,8 +7,8 @@ The app is focused on transliteration and pronunciation-style Roman output. It d
 ## What the Project Does
 
 - Scans Meitei Mayek text from camera images or selected photos.
-- Runs OCR using OCR.space first and Apple Vision as an on-device OCR fallback.
-- Cleans OCR output and extracts Meitei Mayek Unicode text from noisy recognition results.
+- Runs OCR across normalized/enhanced image variants using Apple Vision, local glyph/cluster recognition, and OCR.space.
+- Cleans, ranks, and extracts Meitei Mayek Unicode text from noisy recognition results.
 - Converts Meitei Mayek script to English/Roman transliteration using local rule-based logic.
 - Converts English/Romanized input to Meitei Mayek using a reference phoneme table.
 - Displays OCR source, confidence score, original script, and transliterated output.
@@ -23,9 +23,10 @@ The app is focused on transliteration and pronunciation-style Roman output. It d
 - **Concurrency**: Swift async/await for OCR and transliteration workflows
 - **Image input**: UIKit `UIImagePickerController` and PhotosUI `PHPickerViewController`
 - **OCR**:
-  - OCR.space API for cloud OCR
-  - Apple Vision `VNRecognizeTextRequest` for on-device OCR fallback
-- **Image processing**: Core Image filters through `CIImage`, `CIContext`, and built-in Core Image filters
+  - Apple Vision `VNRecognizeTextRequest` for on-device OCR
+  - Local Meitei Mayek glyph/cluster recognition with adaptive image thresholding
+  - OCR.space API for cloud OCR fallback
+- **Image preparation**: Core Image and Core Graphics preprocessing for normalization, enhancement, binarization, upscaling, and text-region cropping
 - **Speech**: AVFoundation `AVSpeechSynthesizer`
 - **Persistence**: `UserDefaults` with Codable translation records
 - **Testing**: XCTest and Swift Testing-compatible test definitions
@@ -44,8 +45,12 @@ TranslatorViewModel
     v
 TransliterationService
     |
+    +-- OCRService
+    +-- OCRRecognitionResult / OCRTextBlock
     +-- OCRSpaceService
     +-- VisionOCRService
+    +-- LocalMayekGlyphRecognizer
+    +-- DefaultOCRImagePreprocessor
     +-- MeiteiMayekRomanizer
     +-- MeiteiMayekReferenceForwardTransliterator
     +-- MeiteiTextUtilities
@@ -55,10 +60,11 @@ TransliterationService
 
 1. A user types text, captures an image, or selects an image from the photo library.
 2. `TranslatorViewModel` receives the user action and starts the correct async workflow.
-3. For images, `TransliterationService` asks OCR.space and Apple Vision for text recognition.
-4. OCR output is cleaned and ranked by how much Meitei Mayek script it contains.
-5. The selected text is transliterated locally using the rule-based romanizer.
-6. The result is shown in SwiftUI, optionally spoken with AVFoundation, and saved to history.
+3. For images, `TransliterationService` creates original, enhanced, and high-contrast image variants.
+4. Apple Vision, local glyph/cluster recognition, and OCR.space recognize text from those variants.
+5. OCR output is returned as structured results containing raw candidates, cleaned text, confidence, and bounding boxes.
+6. The best Meitei Mayek candidate is selected and passed to the transliteration engine.
+7. The result is shown in SwiftUI, optionally spoken with AVFoundation, and saved to history.
 
 ## Source File Responsibilities
 
@@ -87,11 +93,16 @@ TransliterationService
 
 | File | Responsibility |
 | --- | --- |
-| `TransliterationService.swift` | Core service layer. Defines OCR and romanizer protocols, runs image OCR, ranks OCR attempts, validates script content, builds `MMTransliterationResult`, and exposes typed-text transliteration in both directions. |
+| `TransliterationService.swift` | Transliteration-facing service layer. It asks `OCRService` for extracted Meitei Mayek text, validates script content, builds `MMTransliterationResult`, and exposes typed-text transliteration in both directions. |
+| `OCRService.swift` | OCR orchestration layer. Runs image variants through Apple Vision, local glyph recognition, and OCR.space; ranks candidates by Meitei Mayek content and confidence; rejects low-confidence blocks; and preserves reading order. |
+| `OCRModels.swift` | Shared OCR protocols and structured models such as `OCRRecognitionResult`, `OCRTextBlock`, `OCRTextCandidate`, and `OCRImageVariant`. |
+| `OCRImagePreprocessor.swift` | Image preparation pipeline. Normalizes orientation, upscales small text, creates enhanced and binarized variants, crops dark text regions, and avoids lossy compression before local/Vision OCR. |
+| `MeiteiMayekTextCleaner.swift` | Meitei Mayek-specific text cleaner. Keeps valid `U+ABC0-U+ABFF` and `U+AAE0-U+AAFF` Unicode scalars, preserves line breaks, strips OCR wrappers/noise, and avoids unsafe character replacement. |
+| `OCRDebugLogger.swift` | Debug helper. When `OCRDebugEnabled` is set in `UserDefaults` on a debug build, writes OCR image variants to the temporary directory and logs raw/cleaned OCR output. |
 | `OCRSpaceService` in `TransliterationService.swift` | Cloud OCR adapter. Compresses images, submits them to OCR.space, decodes responses, retries on timeout with smaller image data, and reports OCR errors. |
-| `VisionOCRService` in `TransliterationService.swift` | On-device OCR adapter using Apple Vision text recognition. |
+| `VisionOCRService` in `TransliterationService.swift` | On-device OCR adapter using Apple Vision text recognition. It uses accurate mode, disables language correction, passes image orientation, captures top candidates, and sorts text blocks by reading order. |
+| `LocalMayekGlyphRecognizer` in `TransliterationService.swift` | Local visual OCR fallback. It adaptively thresholds the image, crops dark glyph clusters, classifies each cluster, and returns Meitei Mayek Unicode text before the romanizer runs. |
 | `MeiteiMayekRomanizer.swift` | Small adapter that converts Meitei Mayek text to Roman/English spelling through `MeiteiMayekReferenceReverseTransliterator`. |
-| `MeiteiImageProcessor.swift` | Core Image preprocessing utility. Applies grayscale, contrast/brightness, exposure, and sharpening filters to improve OCR readability. |
 
 ### Reference Transliteration Engine
 
@@ -146,11 +157,23 @@ Persisted history record created from a result. It stores the original script, E
 For camera or gallery images:
 
 1. The image is passed to `TranslatorViewModel.translateImage(_:)`.
-2. `TransliterationService.processImage(_:)` asks OCR.space and Apple Vision to recognize text.
-3. Each OCR attempt is cleaned using `MeiteiTextUtilities.cleanOCRText(_:)`.
-4. Meitei Mayek script is extracted using `extractMayekScript(from:)`.
-5. Attempts are ranked by Meitei Mayek character count.
-6. The best result is transliterated if it contains enough Meitei Mayek characters.
+2. `TransliterationService.processImage(_:)` creates multiple OCR-ready image variants.
+3. Apple Vision, local glyph/cluster recognition, and OCR.space each try to recognize text from those variants.
+4. Vision results are sorted by normalized bounding boxes so lines read top-to-bottom and left-to-right.
+5. Each OCR attempt is converted into `OCRRecognitionResult`, with raw candidates, cleaned text, extracted Meitei Mayek text, confidence, and optional bounding boxes.
+6. Text cleanup keeps only Meitei Mayek `U+ABC0-U+ABFF` and extension `U+AAE0-U+AAFF` scalars plus safe whitespace; it does not blindly substitute look-alike characters.
+7. Attempts are ranked by Meitei Mayek character count, Mayek ratio, confidence, and text length.
+8. The best extracted script is transliterated only after OCR has returned clean Meitei Mayek text.
+
+### OCR Debugging
+
+In a debug build, enable OCR debug output with:
+
+```swift
+UserDefaults.standard.set(true, forKey: "OCRDebugEnabled")
+```
+
+When enabled, `OCRDebugLogger` writes original and preprocessed images under the app's temporary `MeiteiMayekOCR` directory and logs raw OCR text, cleaned OCR text, extracted script, source, variant, and confidence. Use this when comparing why a scan fails: inspect the original image, enhanced variants, binarized variants, cropped text region, raw candidates, and final cleaned output.
 
 ### Typed Input
 
@@ -178,6 +201,11 @@ MeiteiMayekTranslator/
 │   ├── HistoryView.swift
 │   ├── TranslatorViewModel.swift
 │   ├── TransliterationService.swift
+│   ├── OCRService.swift
+│   ├── OCRModels.swift
+│   ├── OCRImagePreprocessor.swift
+│   ├── OCRDebugLogger.swift
+│   ├── MeiteiMayekTextCleaner.swift
 │   ├── TransliterationResult.swift
 │   ├── TranslationRecord.swift
 │   ├── MeiteiMayekRomanizer.swift
@@ -186,7 +214,6 @@ MeiteiMayekTranslator/
 │   ├── MeiteiMayekEnglishFormatter.swift
 │   ├── MeiteiTextUtilities.swift
 │   ├── ScriptDetector.swift
-│   ├── MeiteiImageProcessor.swift
 │   └── Assets.xcassets/
 ├── MeiteiMayekTranslatorTests/
 ├── MeiteiMayekTranslatorUITests/
@@ -224,8 +251,20 @@ If the named simulator is not installed, run `xcrun simctl list devices` and cho
 - OCR quality depends heavily on image clarity, crop tightness, lighting, and OCR provider behavior.
 - The app performs transliteration, not meaning-based translation.
 - OCR.space requires network access, while Apple Vision OCR runs on device.
+- Apple Vision does not currently provide reliable native Meitei Mayek OCR, so it is treated as a baseline provider and diagnostic source rather than the only source of truth.
+- Local glyph recognition is tuned for high-contrast Meitei Mayek scans and bundled sample clusters. A broader production OCR engine should use a labeled Meitei Mayek image dataset and a character-level Core ML classifier.
 - History is intentionally lightweight and stored locally in `UserDefaults`.
 - Some UI test files are still default generated placeholders.
+
+## Production OCR Roadmap
+
+For broad handwriting, fonts, and camera conditions, the next production step is a trained OCR model:
+
+1. Collect images per Meitei Mayek character and common clusters across fonts, sizes, lighting, blur, and background conditions.
+2. Label each crop with the exact Unicode scalar or cluster.
+3. Train a small character classifier using Create ML, PyTorch, or TensorFlow, then export to Core ML.
+4. Keep the current segmentation pipeline as the detector: normalize, threshold, crop glyph clusters, classify each crop, then join recognized characters in reading order.
+5. Continue using Apple Vision and OCR.space as fallback/diagnostic providers, not as the primary Meitei Mayek engine.
 
 ## Purpose
 

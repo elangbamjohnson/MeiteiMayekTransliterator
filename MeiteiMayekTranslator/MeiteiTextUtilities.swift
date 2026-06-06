@@ -9,10 +9,8 @@ import Foundation
 
 enum MeiteiTextUtilities {
 
-    private static let mayekRange: ClosedRange<UInt32> = 0xABC0...0xABFF
-
     static func isMayekScalar(_ scalar: UnicodeScalar) -> Bool {
-        mayekRange.contains(scalar.value)
+        MeiteiMayekTextCleaner.isMayekScalar(scalar)
     }
 
     static func mayekCharacterCount(in text: String) -> Int {
@@ -51,41 +49,11 @@ enum MeiteiTextUtilities {
 
     /// Keeps only Meitei Mayek letters, digits, and line breaks (drops Latin/OCR noise).
     static func extractMayekScript(from text: String) -> String {
-        var lines: [String] = []
-        for line in text.components(separatedBy: .newlines) {
-            var segment = ""
-            var lastWasMayek = false
-            for scalar in line.unicodeScalars {
-                if isMayekScalar(scalar) {
-                    segment.unicodeScalars.append(scalar)
-                    lastWasMayek = true
-                } else if lastWasMayek, scalar.properties.isWhitespace {
-                    segment.unicodeScalars.append(scalar)
-                    lastWasMayek = false
-                }
-            }
-            let trimmed = segment.trimmingCharacters(in: .whitespaces)
-            if !trimmed.isEmpty {
-                lines.append(trimmed)
-            }
-        }
-        return lines.joined(separator: "\n")
+        MeiteiMayekTextCleaner.extractMayekText(from: text)
     }
 
     /// Strips common OCR/LLM wrappers and normalizes whitespace.
     static func cleanOCRText(_ text: String) -> String {
-        var value = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if value.hasPrefix("```") {
-            value = value
-                .replacingOccurrences(of: "```", with: "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        for prefix in ["Meitei Mayek:", "Mayek:", "Script:", "Output:"] {
-            if let range = value.range(of: prefix, options: .caseInsensitive) {
-                value = String(value[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-        }
-        value = value.replacingOccurrences(of: "\r\n", with: "\n")
-        return value
+        MeiteiMayekTextCleaner.cleanOCRText(text)
     }
 }
