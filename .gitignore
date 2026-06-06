@@ -46,3 +46,6 @@ fastlane/test_output
 *.swp
 *~
 .nib
+
+# Local OCR tooling
+.venv-ocr/
