@@ -7,7 +7,7 @@ import CoreImage
 import ImageIO
 import UIKit
 
-struct DefaultOCRImagePreprocessor: OCRImagePreparing {
+nonisolated struct DefaultOCRImagePreprocessor: OCRImagePreparing {
     private static let context = CIContext(options: [.useSoftwareRenderer: false])
 
     func variants(for image: UIImage) -> [OCRImageVariant] {
@@ -242,7 +242,7 @@ struct DefaultOCRImagePreprocessor: OCRImagePreparing {
 }
 
 extension UIImage {
-    func normalizedForOCR() -> UIImage {
+    nonisolated func normalizedForOCR() -> UIImage {
         guard imageOrientation != .up else { return self }
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { _ in
@@ -250,7 +250,7 @@ extension UIImage {
         }
     }
 
-    var cgImagePropertyOrientation: CGImagePropertyOrientation {
+    nonisolated var cgImagePropertyOrientation: CGImagePropertyOrientation {
         switch imageOrientation {
         case .up: return .up
         case .upMirrored: return .upMirrored
@@ -264,4 +264,3 @@ extension UIImage {
         }
     }
 }
-

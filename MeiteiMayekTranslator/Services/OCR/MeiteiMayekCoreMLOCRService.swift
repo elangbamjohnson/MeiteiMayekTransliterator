@@ -9,7 +9,7 @@ import CoreML
 import Foundation
 import UIKit
 
-final class MeiteiMayekCoreMLOCRService: OCRDetailedRecognizing {
+nonisolated final class MeiteiMayekCoreMLOCRService: OCRDetailedRecognizing {
     private enum Constants {
         static let inputWidth = 128
         static let inputHeight = 32

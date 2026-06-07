@@ -7,6 +7,8 @@
 
 import SwiftUI
 import PhotosUI
+import ImageIO
+import UniformTypeIdentifiers
 
 struct ScanView: View {
     @EnvironmentObject var viewModel: TranslatorViewModel
@@ -14,7 +16,15 @@ struct ScanView: View {
     @State private var showImagePicker = false
     @State private var showPhotoPicker = false
     @State private var imagePickerSource: UIImagePickerController.SourceType = .camera
-    
+    @State private var activeImageImportSource: ImageImportSource?
+
+    private var isImageImporting: Bool {
+        activeImageImportSource != nil
+    }
+
+    private var isImageBusy: Bool {
+        isImageImporting || viewModel.isLoading
+    }
 
     var body: some View {
         NavigationStack {
@@ -53,22 +63,27 @@ struct ScanView: View {
 
                         // Camera capture card
                         Button {
-                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                                imagePickerSource = .camera
-                                showImagePicker = true
-                            }
+                            guard UIImagePickerController.isSourceTypeAvailable(.camera), !isImageBusy else { return }
+                            imagePickerSource = .camera
+                            activeImageImportSource = .camera
+                            showImagePicker = true
                         } label: {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 20)
                                     .fill(Color(.systemGray6))
                                     .frame(height: 180)
-                                    .opacity(UIImagePickerController.isSourceTypeAvailable(.camera) ? 1 : 0.5)
+                                    .opacity(UIImagePickerController.isSourceTypeAvailable(.camera) && !isImageBusy ? 1 : 0.5)
 
                                 VStack(spacing: 12) {
-                                    Image(systemName: "camera.fill")
-                                        .font(.system(size: 44))
-                                        .foregroundStyle(.purple)
-                                    Text("Tap to scan script")
+                                    if activeImageImportSource == .camera {
+                                        ProgressView()
+                                            .scaleEffect(1.2)
+                                    } else {
+                                        Image(systemName: "camera.fill")
+                                            .font(.system(size: 44))
+                                            .foregroundStyle(.purple)
+                                    }
+                                    Text(activeImageImportSource == .camera ? "Loading captured image…" : "Tap to scan script")
                                         .font(.headline)
                                         .foregroundStyle(.primary)
                                     Text(UIImagePickerController.isSourceTypeAvailable(.camera) ? "Point camera at Meitei Mayek text" : "Camera not available on this device")
@@ -77,23 +92,36 @@ struct ScanView: View {
                                 }
                             }
                         }
-                        .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+                        .accessibilityIdentifier("cameraImportButton")
+                        .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera) || isImageBusy)
                         .padding(.horizontal)
 
                         // Secondary options
                         HStack(spacing: 12) {
                             // Gallery picker
                             Button {
+                                guard !isImageBusy else { return }
+                                activeImageImportSource = .gallery
                                 showPhotoPicker = true
                             } label: {
-                                Label("Gallery", systemImage: "photo.on.rectangle")
+                                Label {
+                                    Text(activeImageImportSource == .gallery ? "Loading photo…" : "Gallery")
+                                } icon: {
+                                    if activeImageImportSource == .gallery {
+                                        ProgressView()
+                                    } else {
+                                        Image(systemName: "photo.on.rectangle")
+                                    }
+                                }
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .background(Color(.systemGray6))
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(isImageBusy ? .secondary : .primary)
                                     .clipShape(RoundedRectangle(cornerRadius: 14))
                             }
+                            .disabled(isImageBusy)
                         }
+                        .accessibilityIdentifier("galleryImportButton")
                         .padding(.horizontal)
 
                         // Inline type-to-transliterate section
@@ -141,6 +169,7 @@ struct ScanView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 14))
                                     .padding(.horizontal)
                             }
+                            .accessibilityIdentifier("selectedImagePreview")
                         }
 
                         // Error message
@@ -169,6 +198,7 @@ struct ScanView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
+                            .accessibilityIdentifier("translationLoadingView")
                         }
 
                         // Inline result area
@@ -312,20 +342,36 @@ struct ScanView: View {
             .navigationTitle("")
             .navigationBarHidden(true)
             .sheet(isPresented: $showImagePicker) {
-                ImagePickerView(sourceType: imagePickerSource) { image in
-                    Task {
-                        await viewModel.translateImage(image)
+                ImagePickerView(
+                    sourceType: imagePickerSource,
+                    onImportFinished: {
+                        activeImageImportSource = nil
+                    },
+                    onImagePicked: { image in
+                        processPickedImage(image)
                     }
-                }
+                )
             }
             .sheet(isPresented: $showPhotoPicker) {
-                PhotoPickerView { image in
-                    Task {
-                        await viewModel.translateImage(image)
+                PhotoPickerView(
+                    onImportFinished: {
+                        activeImageImportSource = nil
+                    }, onImagePicked: { pickedImage in
+                        processPickedGalleryImage(pickedImage)
                     }
+                )
+            }
+            .safeAreaInset(edge: .bottom) {
+                if let activeImageImportSource {
+                    ImageImportBanner(message: activeImageImportSource.loadingMessage)
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .allowsHitTesting(false)
                 }
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: activeImageImportSource)
     }
     
     private var confidenceColor: Color {
@@ -336,15 +382,55 @@ struct ScanView: View {
         default:     return .red
         }
     }
+
+    private func processPickedImage(_ image: UIImage) {
+        Task {
+            await viewModel.prepareImageForTranslation(image)
+            activeImageImportSource = nil
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            await viewModel.transliteratePreparedImage(image)
+        }
+    }
+
+    private func processPickedGalleryImage(_ pickedImage: PickedGalleryImage) {
+        Task {
+            viewModel.prepareImagePreview(pickedImage.previewImage)
+            activeImageImportSource = nil
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            await viewModel.transliteratePreparedImage(
+                at: pickedImage.originalImageURL,
+                cleanupAfterProcessing: true
+            )
+        }
+    }
 }
 
 // MARK: - UIImagePickerController wrapper
 
+private enum ImageImportSource: Equatable {
+    case camera
+    case gallery
+
+    var loadingMessage: String {
+        switch self {
+        case .camera:
+            return "Loading captured image…"
+        case .gallery:
+            return "Loading selected image…"
+        }
+    }
+}
+
 struct ImagePickerView: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType
+    var onImportFinished: () -> Void
     var onImagePicked: (UIImage) -> Void
 
-    func makeCoordinator() -> Coordinator { Coordinator(onImagePicked: onImagePicked) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onImportFinished: onImportFinished, onImagePicked: onImagePicked)
+    }
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -356,23 +442,43 @@ struct ImagePickerView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        var onImportFinished: () -> Void
         var onImagePicked: (UIImage) -> Void
-        init(onImagePicked: @escaping (UIImage) -> Void) { self.onImagePicked = onImagePicked }
+
+        init(onImportFinished: @escaping () -> Void, onImagePicked: @escaping (UIImage) -> Void) {
+            self.onImportFinished = onImportFinished
+            self.onImagePicked = onImagePicked
+        }
 
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             if let image = info[.originalImage] as? UIImage {
-                onImagePicked(image)
+                picker.dismiss(animated: true) {
+                    self.onImagePicked(image)
+                }
+            } else {
+                picker.dismiss(animated: true) {
+                    self.onImportFinished()
+                }
             }
-            picker.dismiss(animated: true)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true) {
+                self.onImportFinished()
+            }
         }
     }
 }
 
-import PhotosUI
+struct PickedGalleryImage {
+    let previewImage: UIImage
+    let originalImageURL: URL
+}
 
 struct PhotoPickerView: UIViewControllerRepresentable {
-    var onImagePicked: (UIImage) -> Void
+    var onImportFinished: () -> Void
+    var onImagePicked: (PickedGalleryImage) -> Void
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration(photoLibrary: .shared())
@@ -386,27 +492,112 @@ struct PhotoPickerView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onImagePicked: onImagePicked)
+        Coordinator(onImportFinished: onImportFinished, onImagePicked: onImagePicked)
     }
 
     class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        let onImagePicked: (UIImage) -> Void
+        let onImportFinished: () -> Void
+        let onImagePicked: (PickedGalleryImage) -> Void
 
-        init(onImagePicked: @escaping (UIImage) -> Void) {
+        init(onImportFinished: @escaping () -> Void, onImagePicked: @escaping (PickedGalleryImage) -> Void) {
+            self.onImportFinished = onImportFinished
             self.onImagePicked = onImagePicked
         }
 
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             picker.dismiss(animated: true)
-            guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
-            provider.loadObject(ofClass: UIImage.self) { object, _ in
-                if let image = object as? UIImage {
+            guard let provider = results.first?.itemProvider,
+                  provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) else {
+                DispatchQueue.main.async {
+                    self.onImportFinished()
+                }
+                return
+            }
+
+            provider.loadFileRepresentation(forTypeIdentifier: UTType.image.identifier) { url, _ in
+                guard let url else {
                     DispatchQueue.main.async {
-                        self.onImagePicked(image)
+                        self.onImportFinished()
+                    }
+                    return
+                }
+
+                do {
+                    let localURL = try Self.copyPickerFileToTemporaryURL(url)
+                    guard let previewImage = Self.thumbnailImage(from: localURL, maxPixelSize: 1_200) else {
+                        try? FileManager.default.removeItem(at: localURL)
+                        throw CocoaError(.fileReadCorruptFile)
+                    }
+
+                    DispatchQueue.main.async {
+                        self.onImagePicked(PickedGalleryImage(
+                            previewImage: previewImage,
+                            originalImageURL: localURL
+                        ))
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        self.onImportFinished()
                     }
                 }
             }
         }
+
+        private static func copyPickerFileToTemporaryURL(_ url: URL) throws -> URL {
+            let fileExtension = url.pathExtension.isEmpty ? "image" : url.pathExtension
+            let fileName = UUID().uuidString + "." + fileExtension
+            let destinationURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(fileName, isDirectory: false)
+
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+            try FileManager.default.copyItem(at: url, to: destinationURL)
+            return destinationURL
+        }
+
+        private static func thumbnailImage(from url: URL, maxPixelSize: CGFloat) -> UIImage? {
+            let options: [CFString: Any] = [
+                kCGImageSourceShouldCache: false,
+                kCGImageSourceShouldCacheImmediately: false
+            ]
+            guard let source = CGImageSourceCreateWithURL(url as CFURL, options as CFDictionary) else {
+                return nil
+            }
+
+            let thumbnailOptions: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+                kCGImageSourceShouldCacheImmediately: true
+            ]
+            guard let cgImage = CGImageSourceCreateThumbnailAtIndex(
+                source,
+                0,
+                thumbnailOptions as CFDictionary
+            ) else {
+                return nil
+            }
+            return UIImage(cgImage: cgImage)
+        }
+    }
+}
+
+private struct ImageImportBanner: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            Text(message)
+                .font(.callout)
+                .foregroundStyle(.primary)
+            Spacer(minLength: 0)
+        }
+        .padding()
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 4)
     }
 }
 

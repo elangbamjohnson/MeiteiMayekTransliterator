@@ -43,14 +43,36 @@ class TranslatorViewModel: ObservableObject {
         loadHistory()
     }
 
-    func transliterateImage(_ image: UIImage) async {
-        isLoading = true
+    func prepareImageForTranslation(_ image: UIImage) async {
+        isLoading = false
         errorMessage = nil
         currentResult = nil
-        selectedImage = image
+        selectedImage = nil
 
+        selectedImage = await Task.detached(priority: .userInitiated) {
+            image.resizedForPreview()
+        }.value
+    }
+
+    func prepareImagePreview(_ previewImage: UIImage) {
+        isLoading = false
+        errorMessage = nil
+        currentResult = nil
+        selectedImage = previewImage
+    }
+
+    func transliteratePreparedImage(_ image: UIImage) async {
+        isLoading = true
+        errorMessage = nil
+
+        defer {
+            isLoading = false
+        }
+        
         do {
-            let result = try await service.processImage(image)
+            let result = try await Task.detached(priority: .userInitiated) {
+                try await TransliterationService().processImage(image)
+            }.value
             if result.detectedScript.isEmpty {
                 errorMessage = "No Meitei Mayek text detected. Try a clearer photo."
             } else {
@@ -60,8 +82,43 @@ class TranslatorViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
 
-        isLoading = false
+    func transliteratePreparedImage(at imageURL: URL, cleanupAfterProcessing: Bool = false) async {
+        isLoading = true
+        errorMessage = nil
+
+        defer {
+            isLoading = false
+            if cleanupAfterProcessing {
+                try? FileManager.default.removeItem(at: imageURL)
+            }
+        }
+
+        do {
+            let result = try await Task.detached(priority: .userInitiated) {
+                guard let image = UIImage(contentsOfFile: imageURL.path) else {
+                    throw TransliterationService.ServiceError.invalidImageData
+                }
+                return try await TransliterationService().processImage(image)
+            }.value
+
+            if result.detectedScript.isEmpty {
+                errorMessage = "No Meitei Mayek text detected. Try a clearer photo."
+            } else {
+                currentResult = result
+                saveToHistory(result)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func transliterateImage(_ image: UIImage) async {
+        await prepareImageForTranslation(image)
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 120_000_000)
+        await transliteratePreparedImage(image)
     }
 
     func transliterateTypedText() async {
@@ -211,3 +268,19 @@ class TranslatorViewModel: ObservableObject {
     }
 }
 
+private extension UIImage {
+    nonisolated func resizedForPreview(maxDimension: CGFloat = 1_200) -> UIImage {
+        let longestSide = max(size.width, size.height)
+        guard longestSide > maxDimension else { return self }
+
+        let scale = maxDimension / longestSide
+        let previewSize = CGSize(width: size.width * scale, height: size.height * scale)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        format.opaque = false
+
+        return UIGraphicsImageRenderer(size: previewSize, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: previewSize))
+        }
+    }
+}

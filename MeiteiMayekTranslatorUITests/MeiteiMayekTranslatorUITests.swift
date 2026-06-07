@@ -34,6 +34,20 @@ final class MeiteiMayekTranslatorUITests: XCTestCase {
     }
 
     @MainActor
+    func testSampleImageProcessingKeepsInterfaceResponsive() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-uiTestLoadSampleImage", "meitei_mayek_nupi"]
+        app.launch()
+
+        let historyTab = app.tabBars.buttons["History"]
+        XCTAssertTrue(historyTab.waitForExistence(timeout: 5))
+
+        historyTab.tap()
+
+        XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {

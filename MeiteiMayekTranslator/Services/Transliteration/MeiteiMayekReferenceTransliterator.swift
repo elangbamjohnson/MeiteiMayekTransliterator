@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Forward (English → Mayek), matches abhisanoujam/meitei_mayek
 
-enum MeiteiMayekReferenceForwardTransliterator {
+nonisolated enum MeiteiMayekReferenceForwardTransliterator {
 
     private enum CVCState { case none, consonant, vowel }
     private enum OutputMode { case vowel, consonant, lonsum }
@@ -182,7 +182,7 @@ enum MeiteiMayekReferenceForwardTransliterator {
 
 // MARK: - Reverse (Mayek → English), inverse of reference forward rules
 
-enum MeiteiMayekReferenceReverseTransliterator {
+nonisolated enum MeiteiMayekReferenceReverseTransliterator {
 
     private struct MayekToken {
         let phoneme: String
@@ -276,4 +276,3 @@ enum MeiteiMayekReferenceReverseTransliterator {
         return !fragmentScalars.isEmpty
     }
 }
-

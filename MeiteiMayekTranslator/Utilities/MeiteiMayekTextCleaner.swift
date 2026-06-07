@@ -13,7 +13,7 @@
 
 import Foundation
 
-enum MeiteiMayekTextCleaner {
+nonisolated enum MeiteiMayekTextCleaner {
 
     // MARK: - Private constants
 

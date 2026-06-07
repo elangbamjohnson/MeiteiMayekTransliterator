@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ScriptDetector {
+nonisolated struct ScriptDetector {
     static func detectScript(_ text: String) -> String {
         // Meitei Mayek range U+ABC0–U+ABFF
         if text.unicodeScalars.contains(where: { $0.value >= 0xABC0 && $0.value <= 0xABFF }) {

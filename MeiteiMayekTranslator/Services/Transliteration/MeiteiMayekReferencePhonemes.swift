@@ -8,7 +8,7 @@
 import Foundation
 
 /// Phoneme data aligned with abhisanoujam/meitei_mayek (`meitei_mayek_transliteration.js`).
-enum MeiteiMayekReferencePhonemes {
+nonisolated enum MeiteiMayekReferencePhonemes {
 
     struct Definition {
         let phoneme: String

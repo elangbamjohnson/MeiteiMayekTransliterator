@@ -80,13 +80,13 @@ import Vision
 
 // MARK: - Public protocol -------------------------------------------------
 
-protocol MeiteiRomanizing {
+nonisolated protocol MeiteiRomanizing {
     func romanize(_ text: String) -> String
 }
 
 // MARK: - TransliterationService ------------------------------------------
 
-final class TransliterationService {
+nonisolated final class TransliterationService {
 
     enum ServiceError: LocalizedError {
         case ocrFailed(String)
@@ -195,7 +195,7 @@ typealias FreeTranslationService = TransliterationService
 
 // MARK: - LocalMayekGlyphRecognizer ---------------------------------------
 
-final class LocalMayekGlyphRecognizer: OCRDetailedRecognizing {
+nonisolated final class LocalMayekGlyphRecognizer: OCRDetailedRecognizing {
 
     // Try page/line matching first; fall back to whole-word and then per-glyph OCR.
     private let lineMatcher  = KnownMayekLineMatcher()
@@ -324,7 +324,7 @@ final class LocalMayekGlyphRecognizer: OCRDetailedRecognizing {
 
 // MARK: - KnownMayekLineMatcher -------------------------------------------
 
-private final class KnownMayekLineMatcher {
+private nonisolated final class KnownMayekLineMatcher {
 
     struct Match {
         let text: String
@@ -631,7 +631,7 @@ private final class KnownMayekLineMatcher {
 
 // MARK: - KnownMayekTextMatcher -------------------------------------------
 
-private final class KnownMayekTextMatcher {
+private nonisolated final class KnownMayekTextMatcher {
 
     struct Match {
         let text: String
@@ -1136,7 +1136,7 @@ private final class KnownMayekTextMatcher {
 //  weights and sizes.  This fires before segmentation and sidesteps all the
 //  per-glyph pipeline issues for common words.
 
-private final class WholeMayekWordMatcher {
+private nonisolated final class WholeMayekWordMatcher {
 
     struct Match {
         let text: String
@@ -1254,12 +1254,12 @@ private final class WholeMayekWordMatcher {
 
 // MARK: - MayekGlyphSegment / MayekGlyphSegmenter -------------------------
 
-private struct MayekGlyphSegment {
+private nonisolated struct MayekGlyphSegment {
     let image: UIImage
     let bounds: CGRect
 }
 
-private struct MayekGlyphSegmenter {
+private nonisolated struct MayekGlyphSegmenter {
     private let maxDimension: CGFloat = 640
 
     func segments(from image: UIImage) -> [MayekGlyphSegment] {
@@ -1483,7 +1483,7 @@ private struct MayekGlyphSegmenter {
 
 // MARK: - MayekGlyphClassifier --------------------------------------------
 
-private final class MayekGlyphClassifier {
+private nonisolated final class MayekGlyphClassifier {
 
     struct Match {
         let text: String
@@ -1600,7 +1600,7 @@ private final class MayekGlyphClassifier {
 
 // MARK: - BinaryImageSignature / Builder ----------------------------------
 
-private struct BinaryImageSignature {
+private nonisolated struct BinaryImageSignature {
     let words:    [UInt64]
     let bitCount: Int
 
@@ -1614,7 +1614,7 @@ private struct BinaryImageSignature {
     }
 }
 
-private struct BinaryImageSignatureBuilder {
+private nonisolated struct BinaryImageSignatureBuilder {
     let columns: Int
     let rows:    Int
 

@@ -13,7 +13,7 @@ import UIKit
 /// OCR.space does not natively support Meetei Mayek, so results are filtered
 /// by `MeiteiMayekTextCleaner` after the call. Because the API returns no
 /// per-character confidence score, all results use `OCRRecognitionResult.syntheticCloudConfidence`.
-final class OCRSpaceService: OCRDetailedRecognizing {
+nonisolated final class OCRSpaceService: OCRDetailedRecognizing {
 
     // MARK: - Configuration
 
@@ -186,7 +186,7 @@ final class OCRSpaceService: OCRDetailedRecognizing {
 
 // MARK: - OCR.space response model
 
-struct OCRSpaceResponse: Codable {
+nonisolated struct OCRSpaceResponse: Codable {
     let ParsedResults: [ParsedResult]?
     let IsErroredOnProcessing: Bool
     let ErrorMessage: [String]?

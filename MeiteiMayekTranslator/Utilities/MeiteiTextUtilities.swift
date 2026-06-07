@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum MeiteiTextUtilities {
+nonisolated enum MeiteiTextUtilities {
 
     static func isMayekScalar(_ scalar: UnicodeScalar) -> Bool {
         MeiteiMayekTextCleaner.isMayekScalar(scalar)

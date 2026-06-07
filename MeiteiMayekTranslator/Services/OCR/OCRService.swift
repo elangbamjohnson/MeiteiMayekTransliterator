@@ -11,7 +11,7 @@
 import Foundation
 import UIKit
 
-final class OCRService {
+nonisolated final class OCRService {
 
     // MARK: - Provider identity
 

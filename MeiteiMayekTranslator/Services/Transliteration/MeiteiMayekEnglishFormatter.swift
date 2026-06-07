@@ -8,7 +8,7 @@
 import Foundation
 
 /// Normalizes raw romanization into readable English spelling (e.g. names and common words).
-enum MeiteiMayekEnglishFormatter {
+nonisolated enum MeiteiMayekEnglishFormatter {
 
     static func format(_ raw: String) -> String {
         let normalized = raw

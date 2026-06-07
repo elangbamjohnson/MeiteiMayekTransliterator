@@ -11,7 +11,7 @@ import Foundation
 typealias TransliterationResult = MMTransliterationResult
 typealias OCRTranslationResult = MMTransliterationResult
 
-struct TranslationRecord: Identifiable, Codable {
+nonisolated struct TranslationRecord: Identifiable, Codable {
     let id: UUID
     let originalScript: String
     let englishTransliteration: String
@@ -98,4 +98,3 @@ extension TranslationRecord {
         )
     }
 }
-

@@ -6,7 +6,7 @@
 import Foundation
 import UIKit
 
-enum OCRDebugLogger {
+nonisolated enum OCRDebugLogger {
     static var isEnabled: Bool {
         #if DEBUG
         UserDefaults.standard.bool(forKey: "OCRDebugEnabled")
@@ -40,4 +40,3 @@ enum OCRDebugLogger {
         }
     }
 }
-

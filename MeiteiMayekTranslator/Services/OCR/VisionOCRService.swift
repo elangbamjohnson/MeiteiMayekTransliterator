@@ -14,7 +14,7 @@ import Vision
 /// Apple Vision does NOT have built-in support for Meetei Mayek, so it runs in
 /// script-agnostic mode (`usesLanguageCorrection = false`, no `recognitionLanguages`
 /// set). The resulting raw Unicode output is then filtered by `MeiteiMayekTextCleaner`.
-final class VisionOCRService: OCRDetailedRecognizing {
+nonisolated final class VisionOCRService: OCRDetailedRecognizing {
 
     // MARK: - OCRRecognizing (simple entry point)
 

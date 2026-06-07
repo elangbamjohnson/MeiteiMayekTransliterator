@@ -1,6 +1,6 @@
 import Foundation
 
-struct MMTransliterationResult: Identifiable, Codable {
+nonisolated struct MMTransliterationResult: Identifiable, Codable, Sendable {
     let id: UUID
     let detectedScript: String
     let englishTransliteration: String
@@ -31,4 +31,3 @@ struct MMTransliterationResult: Identifiable, Codable {
         self.createdAt = createdAt
     }
 }
-

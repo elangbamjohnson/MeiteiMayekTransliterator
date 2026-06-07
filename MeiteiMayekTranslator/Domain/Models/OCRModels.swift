@@ -8,11 +8,11 @@ import UIKit
 
 // MARK: - Protocols
 
-protocol OCRRecognizing {
+nonisolated protocol OCRRecognizing {
     func recognizeText(from image: UIImage) async throws -> String
 }
 
-protocol OCRDetailedRecognizing: OCRRecognizing {
+nonisolated protocol OCRDetailedRecognizing: OCRRecognizing {
     func recognizeDetailed(
         from image: UIImage,
         source: String,
@@ -20,7 +20,7 @@ protocol OCRDetailedRecognizing: OCRRecognizing {
     ) async throws -> OCRRecognitionResult
 }
 
-protocol OCRImagePreparing {
+nonisolated protocol OCRImagePreparing {
     func variants(for image: UIImage) -> [OCRImageVariant]
 }
 
@@ -28,17 +28,17 @@ protocol OCRImagePreparing {
 // BUG FIX #7: mark all structs Sendable so they compile cleanly under Swift 6
 // strict concurrency — they cross async task boundaries in OCRService.
 
-struct OCRImageVariant: Sendable {
+nonisolated struct OCRImageVariant: Sendable {
     let name: String
     let image: UIImage
 }
 
-struct OCRTextCandidate: Sendable {
+nonisolated struct OCRTextCandidate: Sendable {
     let text: String
     let confidence: Float
 }
 
-struct OCRTextBlock: Sendable {
+nonisolated struct OCRTextBlock: Sendable {
     let text: String
     let confidence: Float
     /// Vision bounding boxes use normalised coords (0–1, Y=0 at bottom).
@@ -49,7 +49,7 @@ struct OCRTextBlock: Sendable {
 
 // MARK: - Recognition result
 
-struct OCRRecognitionResult: Sendable {
+nonisolated struct OCRRecognitionResult: Sendable {
 
     // MARK: Constants
 
